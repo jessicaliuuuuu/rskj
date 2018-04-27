@@ -261,31 +261,42 @@ public class BridgeSupport {
         }
 
         if (height < 0) {
-            logger.warn("Height is " + height + " but should be greater than 0");
-            panicProcessor.panic("btclock", "Height is " + height + " but should be greater than 0");
+            String panicMessage = String.format("Height is %d but should be greater than 0", height);
+            logger.warn(panicMessage);
+            panicProcessor.panic("btclock", panicMessage);
             return;
         }
 
         // Check there are at least N blocks on top of the supplied height
         int headHeight = btcBlockChain.getBestChainHeight();
         if ((headHeight - height + 1) < bridgeConstants.getBtc2RskMinimumAcceptableConfirmations()) {
-            logger.warn("At least " + bridgeConstants.getBtc2RskMinimumAcceptableConfirmations() + " confirmations are required, but there are only " + (headHeight - height) + " confirmations");
+            logger.warn(
+                    "At least {} confirmations are required, but there are only {} confirmations",
+                    bridgeConstants.getBtc2RskMinimumAcceptableConfirmations(),
+                    headHeight - height
+            );
             return;
         }
 
         // Check the the merkle root equals merkle root of btc block at specified height in the btc best chain
         BtcBlock blockHeader = BridgeUtils.getStoredBlockAtHeight(btcBlockStore, height).getHeader();
         if (!blockHeader.getMerkleRoot().equals(merkleRoot)) {
-            logger.warn("Supplied merkle root " + merkleRoot + "does not match block's merkle root " + blockHeader.getMerkleRoot());
-            panicProcessor.panic("btclock", "Supplied merkle root " + merkleRoot + "does not match block's merkle root " + blockHeader.getMerkleRoot());
+            String panicMessage = String.format(
+                    "Supplied merkle root %s does not match block's merkle root %s",
+                    merkleRoot,
+                    blockHeader.getMerkleRoot()
+            );
+            logger.warn(panicMessage);
+            panicProcessor.panic("btclock", panicMessage);
             return;
         }
 
         // Checks the transaction contents for sanity
         btcTx.verify();
         if (btcTx.getInputs().isEmpty()) {
-            logger.warn("Tx has no inputs " + btcTx);
-            panicProcessor.panic("btclock", "Tx has no inputs " + btcTx);
+            String panicMessage = String.format("Tx has no inputs %s", btcTx);
+            logger.warn(panicMessage);
+            panicProcessor.panic("btclock", panicMessage);
             return;
         }
 
@@ -296,8 +307,12 @@ public class BridgeSupport {
             logger.debug("This is a lock tx {}", btcTx);
             Script scriptSig = btcTx.getInput(0).getScriptSig();
             if (scriptSig.getChunks().size() != 2) {
-                logger.warn("First input does not spend a Pay-to-PubkeyHash " + btcTx.getInput(0));
-                panicProcessor.panic("btclock", "First input does not spend a Pay-to-PubkeyHash " + btcTx.getInput(0));
+                String panicMessage = String.format(
+                        "First input does not spend a Pay-to-PubkeyHash %s",
+                        btcTx.getInput(0)
+                );
+                logger.warn(panicMessage);
+                panicProcessor.panic("btclock", panicMessage);
                 return;
             }
 
@@ -749,12 +764,11 @@ public class BridgeSupport {
      * The hash for the signature must be calculated with Transaction.SigHash.ALL and anyoneCanPay=false. The signature must be canonical.
      * If enough signatures were added, ask federators to broadcast the btc release tx.
      *
-     * @param executionBlockNumber The block number of the block that is currently being procesed
      * @param federatorPublicKey   Federator who is signing
      * @param signatures           1 signature per btc tx input
      * @param rskTxHash            The id of the rsk tx
      */
-    public void addSignature(long executionBlockNumber, BtcECKey federatorPublicKey, List<byte[]> signatures, byte[] rskTxHash) throws Exception {
+    public void addSignature(BtcECKey federatorPublicKey, List<byte[]> signatures, byte[] rskTxHash) throws Exception {
         Context.propagate(btcContext);
         Federation retiringFederation = getRetiringFederation();
         if (!getActiveFederation().getPublicKeys().contains(federatorPublicKey) && (retiringFederation == null || !retiringFederation.getPublicKeys().contains(federatorPublicKey))) {
@@ -771,10 +785,10 @@ public class BridgeSupport {
             return;
         }
         eventLogger.logAddSignature(federatorPublicKey, btcTx, rskTxHash);
-        processSigning(executionBlockNumber, federatorPublicKey, signatures, rskTxHash, btcTx);
+        processSigning(federatorPublicKey, signatures, rskTxHash, btcTx);
     }
 
-    private void processSigning(long executionBlockNumber, BtcECKey federatorPublicKey, List<byte[]> signatures, byte[] rskTxHash, BtcTransaction btcTx) throws IOException {
+    private void processSigning(BtcECKey federatorPublicKey, List<byte[]> signatures, byte[] rskTxHash, BtcTransaction btcTx) throws IOException {
         // Build input hashes for signatures
         int numInputs = btcTx.getInputs().size();
 
