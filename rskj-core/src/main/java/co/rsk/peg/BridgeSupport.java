@@ -120,7 +120,15 @@ public class BridgeSupport {
 
 
     // Used by unit tests
-    public BridgeSupport(RskSystemProperties config, Repository repository, BridgeEventLogger eventLogger, BridgeConstants bridgeConstants, BridgeStorageProvider provider, BtcBlockStore btcBlockStore, BtcBlockChain btcBlockChain) {
+    public BridgeSupport(
+            RskSystemProperties config,
+            Repository repository,
+            BridgeEventLogger eventLogger,
+            BridgeConstants bridgeConstants,
+            BridgeStorageProvider provider,
+            BtcBlockStore btcBlockStore,
+            BtcBlockChain btcBlockChain,
+            Block rskExecutionBlock) {
         this.provider = provider;
         this.config = config;
         this.bridgeConstants = bridgeConstants;
@@ -129,8 +137,8 @@ public class BridgeSupport {
         this.btcBlockChain = btcBlockChain;
         this.rskRepository = repository;
         this.eventLogger = eventLogger;
-        this.rskExecutionBlock = null;
-        this.federationSupport = new FederationSupport(provider, bridgeConstants, this.rskExecutionBlock);
+        this.rskExecutionBlock = rskExecutionBlock;
+        this.federationSupport = new FederationSupport(provider, bridgeConstants, rskExecutionBlock);
     }
 
     @VisibleForTesting
